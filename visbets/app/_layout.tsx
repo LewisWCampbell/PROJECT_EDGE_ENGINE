@@ -243,6 +243,7 @@ function AuthNavigator() {
       <Stack.Screen name="terms-of-service" options={{ title: 'Terms of Service', presentation: 'modal', headerShown: false }} />
       <Stack.Screen name="privacy-policy" options={{ title: 'Privacy Policy', presentation: 'modal', headerShown: false }} />
       <Stack.Screen name="parlay-analysis" options={{ title: 'Parlay Analysis', presentation: 'modal', headerShown: false }} />
+      <Stack.Screen name="bug-report" options={{ title: 'Report a Bug', presentation: 'modal', headerShown: false }} />
     </Stack>
   );
 }

@@ -48,21 +48,22 @@ export default function UsernameScreen() {
   }, []);
 
   const validateUsername = (value: string): string | undefined => {
-    if (value.length < USERNAME_RULES.MIN_LENGTH) {
-      return `Username must be at least ${USERNAME_RULES.MIN_LENGTH} characters`;
+    const trimmed = value.trim();
+    if (trimmed.length < USERNAME_RULES.MIN_LENGTH) {
+      return `Name must be at least ${USERNAME_RULES.MIN_LENGTH} characters`;
     }
-    if (value.length > USERNAME_RULES.MAX_LENGTH) {
-      return `Username must be at most ${USERNAME_RULES.MAX_LENGTH} characters`;
+    if (trimmed.length > USERNAME_RULES.MAX_LENGTH) {
+      return `Name must be at most ${USERNAME_RULES.MAX_LENGTH} characters`;
     }
-    if (!USERNAME_RULES.PATTERN.test(value)) {
-      return 'Only letters, numbers, and underscores allowed';
+    if (!USERNAME_RULES.PATTERN.test(trimmed)) {
+      return 'Only letters, numbers, spaces, and underscores allowed';
     }
     return undefined;
   };
 
   const handleUsernameChange = useCallback((value: string) => {
-    // Convert to lowercase and remove spaces — synchronous, keeps input responsive
-    const cleaned = value.toLowerCase().replace(/\s/g, '');
+    // Allow spaces — this is a display name, not a unique handle
+    const cleaned = value.replace(/\s{2,}/g, ' '); // collapse multiple spaces
     setLocalUsername(cleaned);
     setIsAvailable(null);
 
@@ -77,48 +78,23 @@ export default function UsernameScreen() {
     }
 
     setError(undefined);
-    setIsChecking(true);
-
-    // Debounce the API call so we don't fire on every keystroke
-    debounceRef.current = setTimeout(async () => {
-      try {
-        const { available, error: checkError } = await checkUsernameAvailable(cleaned);
-        // Only update if this is still the current username (avoid stale results)
-        const current = cleaned; // captured in closure
-        setLocalUsername((prev) => {
-          if (prev !== current) return prev; // stale — skip update
-          if (checkError) {
-            setError('Could not check availability');
-          } else {
-            setIsAvailable(available);
-            if (!available) {
-              setError('Username is already taken');
-            }
-          }
-          return prev;
-        });
-      } catch {
-        setError('Could not check availability');
-      } finally {
-        setIsChecking(false);
-      }
-    }, USERNAME_CHECK_DEBOUNCE_MS);
+    // Display names don't need uniqueness checks — just validate format
+    setIsAvailable(true);
+    setIsChecking(false);
   }, []);
 
   const handleContinue = () => {
-    if (isAvailable && !error) {
-      setUsername(localUsername);
+    if (!error && localUsername.trim().length >= USERNAME_RULES.MIN_LENGTH) {
+      setUsername(localUsername.trim());
       router.push('/(onboarding)/sportsbooks');
     }
   };
 
   const getHint = () => {
-    if (isChecking) return 'Checking availability...';
-    if (isAvailable === true) return 'Username is available!';
-    return `${localUsername.length}/${USERNAME_RULES.MAX_LENGTH} characters`;
+    return `${localUsername.trim().length}/${USERNAME_RULES.MAX_LENGTH} characters`;
   };
 
-  const canContinue = isAvailable === true && !error && !isChecking;
+  const canContinue = !error && localUsername.trim().length >= USERNAME_RULES.MIN_LENGTH;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -159,9 +135,9 @@ export default function UsernameScreen() {
               <TextInput
                 value={localUsername}
                 onChangeText={handleUsernameChange}
-                placeholder="username"
+                placeholder="Your name"
                 placeholderTextColor={colors.text.muted}
-                autoCapitalize="none"
+                autoCapitalize="words"
                 autoCorrect={false}
                 autoFocus
                 style={styles.textInput}

@@ -5,7 +5,7 @@
  * 2. Upsert player game logs → Supabase `game_logs`
  * 3. Fill actual_value + hit on yesterday's `projection_logs`
  * 4. Store today's schedule → Supabase `daily_schedule`
- * 5. Prune game_logs older than 30 days (keeps Supabase free tier healthy)
+ * 5. Prune game_logs older than 60 days (keeps Supabase healthy while retaining enough history)
  */
 
 import { supabaseAdmin } from '../lib/supabaseAdmin';
@@ -293,11 +293,11 @@ async function storeSchedule(dateStr: string): Promise<void> {
   }
 }
 
-// ── Step 5: Prune old game logs (30-day rolling window) ──────────────────────
+// ── Step 5: Prune old game logs (60-day rolling window) ──────────────────────
 
 async function pruneOldLogs(): Promise<void> {
   const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - 30);
+  cutoff.setDate(cutoff.getDate() - 60);
   const cutoffStr = cutoff.toISOString().split('T')[0];
 
   const { error } = await supabaseAdmin

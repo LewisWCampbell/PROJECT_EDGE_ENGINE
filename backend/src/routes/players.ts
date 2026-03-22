@@ -176,7 +176,7 @@ router.get('/:playerId/logs', requireAuth, requireStarter, async (req: Request, 
       return;
     }
 
-    const limit = Math.min(Number(req.query.limit ?? 10), 30);
+    const limit = Math.min(Number(req.query.limit ?? 20), 50);
 
     // ── Layer 1: Supabase game_logs (populated by nightly ingest) ────────────
     const { data: dbLogs } = await supabaseAdmin

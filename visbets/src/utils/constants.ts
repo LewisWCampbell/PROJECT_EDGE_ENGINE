@@ -135,12 +135,13 @@ export const SPORTS = [
 export type SportId = typeof SPORTS[number]['id'];
 
 /**
- * Username Validation Rules
+ * Display Name Validation Rules
+ * This is a display name (not a unique handle), so spaces are allowed.
  */
 export const USERNAME_RULES = {
-  MIN_LENGTH: 3,
-  MAX_LENGTH: 20,
-  PATTERN: /^[a-zA-Z0-9_]+$/,
+  MIN_LENGTH: 2,
+  MAX_LENGTH: 30,
+  PATTERN: /^[a-zA-Z0-9_ ]+$/,
 } as const;
 
 /**

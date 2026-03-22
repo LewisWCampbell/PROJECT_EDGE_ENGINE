@@ -291,6 +291,34 @@ export interface Database {
         };
         Relationships: [];
       };
+      bug_reports: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          reporter_name: string | null;
+          page: string;
+          description: string;
+          app_version: string | null;
+          platform: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string | null;
+          reporter_name?: string | null;
+          page: string;
+          description: string;
+          app_version?: string | null;
+          platform?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          reporter_name?: string | null;
+          page?: string;
+          description?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

@@ -391,7 +391,7 @@ export async function computePlayerDetail(
   // ── 1. Parallel fetch: player info + game logs ────────────────────────────
   const [playerInfo, enrichedLogs] = await Promise.all([
     getPlayerInfo(playerId),
-    getEnrichedGameLogs(playerId, 20),
+    getEnrichedGameLogs(playerId, 50),
   ]);
 
   if (!playerInfo) {

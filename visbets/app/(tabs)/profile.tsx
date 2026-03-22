@@ -193,12 +193,8 @@ export default function ProfileScreen() {
   }, [signOut]);
 
   const handleBugReport = useCallback(() => {
-    const subject = encodeURIComponent('Bug Report - VisBets');
-    const body = encodeURIComponent(
-      `\n\n---\nUser: ${user?.username || 'Unknown'}\nDevice: ${Platform.OS}\nApp Version: ${APP_VERSION}`
-    );
-    Linking.openURL(`mailto:${BUG_REPORT_EMAIL}?subject=${subject}&body=${body}`);
-  }, [user?.username]);
+    router.push('/bug-report');
+  }, [router]);
 
   const handleHelpCenter = useCallback(() => {
     const subject = encodeURIComponent('Help Request - VisBets');
@@ -260,16 +256,16 @@ export default function ProfileScreen() {
                 style={[styles.userName, { borderBottomWidth: 1, borderBottomColor: colors.primary.main, paddingBottom: 4, flex: 1 }]}
                 value={newUsername}
                 onChangeText={setNewUsername}
-                autoCapitalize="none"
+                autoCapitalize="words"
                 autoCorrect={false}
                 autoFocus
                 maxLength={30}
               />
               <Pressable onPress={async () => {
-                const trimmed = newUsername.trim().toLowerCase();
-                if (trimmed.length < 3) { Alert.alert('Too short', 'Username must be at least 3 characters'); return; }
+                const trimmed = newUsername.trim();
+                if (trimmed.length < 2) { Alert.alert('Too short', 'Name must be at least 2 characters'); return; }
                 if (user?.id) {
-                  const { error: updateError } = await supabase.from('profiles').update({ username: trimmed, display_name: trimmed } as any).eq('id', user.id);
+                  const { error: updateError } = await supabase.from('profiles').update({ username: trimmed.toLowerCase().replace(/\s+/g, '_'), display_name: trimmed } as any).eq('id', user.id);
                   if (updateError) {
                     Alert.alert('Update Failed', updateError.message ?? 'Could not update username. Please try again.');
                     return;

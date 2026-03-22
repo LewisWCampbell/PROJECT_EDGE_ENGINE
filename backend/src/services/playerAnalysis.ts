@@ -139,10 +139,10 @@ export async function computePlayerAnalysis(
   line: number,
   bookmaker: string = 'fanduel'
 ): Promise<PlayerAnalysis> {
-  // Fetch up to 20 enriched logs + player info in parallel
+  // Fetch up to 50 enriched logs + player info in parallel
   console.log(`[PlayerAnalysis] Computing analysis for player ${playerId}, stat=${stat}, line=${line}`);
   const [logs, playerInfo] = await Promise.all([
-    getEnrichedGameLogs(playerId, 20),
+    getEnrichedGameLogs(playerId, 50),
     getPlayerInfo(playerId),
   ]);
   console.log(`[PlayerAnalysis] Got ${logs.length} enriched logs, playerInfo: ${playerInfo ? `${playerInfo.firstname} ${playerInfo.lastname}` : 'null'}`);

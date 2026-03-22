@@ -166,33 +166,50 @@ export default function BoardScreen() {
     });
 
     return items.map((p) => {
-      // Left book: prefer bookLines, fall back to p.line (which is resolved
-      // via the bookmaker=leftBook API param), then try other books
-      const leftFromBook = p.bookLines?.[leftBook];
-      const left = leftFromBook != null
-        ? { line: leftFromBook, label: leftBookLabel }
-        : p.line != null
-          ? { line: p.line, label: leftBookLabel }
-          : resolveBookLine(p.bookLines, leftBook, leftBookLabel);
+      const hasBookLines = p.bookLines && Object.keys(p.bookLines).length > 0;
 
-      // Right book: resolve from bookLines with full fallback chain.
-      // If the user's second sportsbook has no line for this player,
-      // fall through to ANY book that has a line — never show "—"
-      // when data exists from another source.
-      let right = resolveBookLine(p.bookLines, rightBook, rightBookLabel);
-      if (right.line == null && p.bookLines) {
-        // Fallback: pick the first available book line that isn't the left book
-        for (const [bookKey, bookLine] of Object.entries(p.bookLines)) {
-          if (bookLine != null && bookKey !== leftBook) {
-            right = { line: bookLine, label: getSportsbookShortLabel(bookKey) };
-            break;
+      // ── Left side ──
+      let left: { line: number | undefined; label: string };
+      if (hasBookLines) {
+        const fromBook = p.bookLines![leftBook];
+        left = fromBook != null
+          ? { line: fromBook, label: leftBookLabel }
+          : resolveBookLine(p.bookLines, leftBook, leftBookLabel);
+      } else {
+        // No bookLines (Supabase fallback) — use p.line with the source bookmaker label
+        left = { line: p.line ?? undefined, label: leftBookLabel };
+      }
+      // Final fallback: if bookLines had no match, use p.line
+      if (left.line == null && p.line != null) {
+        left = { line: p.line, label: p.bookmaker ? getSportsbookShortLabel(p.bookmaker) : leftBookLabel };
+      }
+
+      // ── Right side ──
+      let right: { line: number | undefined; label: string };
+      if (hasBookLines) {
+        right = resolveBookLine(p.bookLines, rightBook, rightBookLabel);
+        // Secondary fallback: any book that isn't the left book
+        if (right.line == null) {
+          for (const [bookKey, bookLine] of Object.entries(p.bookLines!)) {
+            if (bookLine != null && bookKey !== leftBook) {
+              right = { line: bookLine, label: getSportsbookShortLabel(bookKey) };
+              break;
+            }
           }
         }
+      } else {
+        // No bookLines — use p.line but label it with the actual source book,
+        // NOT the same label as left (avoid "PP | PP" when both are from same source)
+        const sourceBook = p.bookmaker ?? 'fanduel';
+        right = {
+          line: p.line ?? undefined,
+          label: sourceBook === leftBook ? rightBookLabel : getSportsbookShortLabel(sourceBook),
+        };
       }
-      // Last resort: if still no right-side line but left has one, mirror left
-      // so both columns always show a value
+
+      // Last resort: mirror the left value but keep the right label distinct
       if (right.line == null && left.line != null) {
-        right = { line: left.line, label: left.label };
+        right = { line: left.line, label: rightBookLabel };
       }
 
       return {
