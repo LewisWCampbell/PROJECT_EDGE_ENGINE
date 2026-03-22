@@ -658,6 +658,62 @@ export async function getPlayerStats(
   return logs;
 }
 
+// ── DB-first game logs (Supabase → live API fallback) ────────────────────────
+
+import { supabaseAdmin } from '../lib/supabaseAdmin';
+
+/**
+ * Fetch game logs preferring the Supabase game_logs table (populated by
+ * nightly ingest + backfill), falling back to live API-Sports only when
+ * the DB has no data for the player.
+ *
+ * This should be used by playerDetail and playerAnalysis instead of
+ * getEnrichedGameLogs() directly, since the DB can have 60+ games while
+ * the live API path is limited to ~15 by rate limits.
+ */
+export async function getPlayerGameLogs(
+  playerId: number,
+  limit: number = 50
+): Promise<EnrichedGameLog[]> {
+  // Layer 1: Supabase game_logs (fast, has backfilled history)
+  const { data: dbLogs } = await supabaseAdmin
+    .from('game_logs')
+    .select('*')
+    .eq('player_id', playerId)
+    .order('game_date', { ascending: false })
+    .limit(limit);
+
+  if (dbLogs && dbLogs.length >= 3) {
+    return dbLogs.map((r: any) => ({
+      player: { id: playerId, name: r.player_name ?? '' },
+      team: { id: 0, name: r.team_name ?? '' },
+      game: { id: r.game_id ?? 0 },
+      points: r.pts ?? 0,
+      min: r.minutes != null ? String(Math.round(r.minutes)) : '0',
+      totReb: r.reb ?? 0,
+      assists: r.ast ?? 0,
+      tpm: r.tpm ?? 0,
+      steals: r.stl ?? 0,
+      blocks: r.blk ?? 0,
+      turnovers: r.turnovers ?? 0,
+      pos: null, fgm: null, fga: null, fgp: null,
+      ftm: null, fta: null, ftp: null,
+      tpa: null, tpp: null,
+      offReb: null, defReb: null,
+      pFouls: null, plusMinus: null, comment: null,
+      // Enriched fields
+      opponent_name: r.opponent_name ?? '',
+      opponent_id: r.opponent_id ?? 0,
+      was_home_game: r.is_home ?? false,
+      game_result: r.game_result ?? null,
+      game_date: r.game_date,
+    }));
+  }
+
+  // Layer 2: Live API-Sports (fallback when DB not yet populated)
+  return getEnrichedGameLogs(playerId, limit);
+}
+
 // ── Standings stub ────────────────────────────────────────────────────────────
 
 export async function getStandings(_season?: string) { return []; }

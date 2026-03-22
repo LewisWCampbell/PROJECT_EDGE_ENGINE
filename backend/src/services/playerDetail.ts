@@ -9,7 +9,7 @@
 
 import {
   getPlayerInfo,
-  getEnrichedGameLogs,
+  getPlayerGameLogs,
   getTodaysGames,
   getUpcomingGamesNextDays,
   EnrichedGameLog,
@@ -263,25 +263,30 @@ function computeDistribution(
     else counts[4]++;
   }
 
+  const r1 = (n: number) => Math.round(n * 10) / 10; // round to tenth
+
   const total = values.length;
   const buckets = bucketDefs.map((def, i) => ({
     label: def.label,
     count: counts[i],
-    percentage: Math.round((counts[i] / total) * 1000) / 10,
-    range: { min: Math.round(def.min * 10) / 10, max: def.max === Infinity ? 999 : Math.round(def.max * 10) / 10 },
+    percentage: r1((counts[i] / total) * 100),
+    range: {
+      min: r1(def.min),
+      max: def.max === Infinity ? 999 : r1(def.max),
+    },
   }));
 
   // Median
   const sorted = [...values].sort((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
   const median = sorted.length % 2 === 0
-    ? Math.round(((sorted[mid - 1] + sorted[mid]) / 2) * 10) / 10
-    : sorted[mid];
+    ? r1((sorted[mid - 1] + sorted[mid]) / 2)
+    : r1(sorted[mid]);
 
-  // Mode (rounded to nearest integer)
+  // Mode (rounded to nearest tenth)
   const freq: Record<number, number> = {};
   for (const v of values) {
-    const rounded = Math.round(v);
+    const rounded = r1(v);
     freq[rounded] = (freq[rounded] || 0) + 1;
   }
   const mode = Number(
@@ -391,7 +396,7 @@ export async function computePlayerDetail(
   // ── 1. Parallel fetch: player info + game logs ────────────────────────────
   const [playerInfo, enrichedLogs] = await Promise.all([
     getPlayerInfo(playerId),
-    getEnrichedGameLogs(playerId, 50),
+    getPlayerGameLogs(playerId, 50),
   ]);
 
   if (!playerInfo) {
@@ -594,13 +599,15 @@ export async function computePlayerDetail(
   const ceiling = values.length > 0 ? Math.max(...values) : 0;
   const cvVal = analysis.coefficientOfVariation;
 
+  const r1 = (n: number) => Math.round(n * 10) / 10;
+
   const consistency: PlayerDetailResponse['consistency'] = {
     rating: cvVal < 0.25 ? 'High' : cvVal <= 0.45 ? 'Medium' : 'Low',
-    standardDeviation: analysis.standardDeviation,
-    coefficientOfVariation: cvVal,
-    floorValue: Math.round(floor * 10) / 10,
-    ceilingValue: Math.round(ceiling * 10) / 10,
-    rangeDescription: `${Math.round(floor)} - ${Math.round(ceiling)}`,
+    standardDeviation: r1(analysis.standardDeviation),
+    coefficientOfVariation: r1(cvVal * 100) / 100, // keep as decimal but round to 2 places
+    floorValue: r1(floor),
+    ceilingValue: r1(ceiling),
+    rangeDescription: `${r1(floor)} - ${r1(ceiling)}`,
   };
 
   // Distribution

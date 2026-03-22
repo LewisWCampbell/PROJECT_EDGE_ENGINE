@@ -4,7 +4,7 @@
  * from enriched game logs + TheOddsAPI for the /analysis endpoint.
  */
 
-import { getEnrichedGameLogs, getPlayerInfo, playerNameMatches, EnrichedGameLog } from './apiSports';
+import { getPlayerGameLogs, getPlayerInfo, playerNameMatches, EnrichedGameLog } from './apiSports';
 import { getNBAOdds, getNBAPlayerProps, isQuotaLow, getQuotaStatus } from './oddsApi';
 import { getPrizePicksLine } from './prizePicks';
 import { getUnderdogLine } from './underdogFantasy';
@@ -139,13 +139,13 @@ export async function computePlayerAnalysis(
   line: number,
   bookmaker: string = 'fanduel'
 ): Promise<PlayerAnalysis> {
-  // Fetch up to 50 enriched logs + player info in parallel
+  // Fetch up to 50 game logs (DB first, live API fallback) + player info
   console.log(`[PlayerAnalysis] Computing analysis for player ${playerId}, stat=${stat}, line=${line}`);
   const [logs, playerInfo] = await Promise.all([
-    getEnrichedGameLogs(playerId, 50),
+    getPlayerGameLogs(playerId, 50),
     getPlayerInfo(playerId),
   ]);
-  console.log(`[PlayerAnalysis] Got ${logs.length} enriched logs, playerInfo: ${playerInfo ? `${playerInfo.firstname} ${playerInfo.lastname}` : 'null'}`);
+  console.log(`[PlayerAnalysis] Got ${logs.length} game logs, playerInfo: ${playerInfo ? `${playerInfo.firstname} ${playerInfo.lastname}` : 'null'}`);
 
   // Filter to played games only (have minutes > 0)
   const played = logs.filter((g) => parseMinutes(g.min) > 0);
