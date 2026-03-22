@@ -455,17 +455,23 @@ async function preComputeProjections(
     return;
   }
 
-  // Build Redis rows with bookLines (for the board's left/right sportsbook columns).
-  // bookLines can't go in the DB upsert (column doesn't exist), so we add it only for Redis.
-  const redisRows = rows.map((r: Record<string, any>) => ({
+  // Attach bookLines to each row for both Redis and DB persistence.
+  // This ensures per-book lines survive Redis TTL expiry (Supabase fallback).
+  const rowsWithBookLines = rows.map((r: Record<string, any>) => ({
     ...r,
-    bookLines: allBookLines.get(`${r.player_name.toLowerCase()}:${r.stat}`) ?? {},
+    book_lines: allBookLines.get(`${r.player_name.toLowerCase()}:${r.stat}`) ?? {},
   }));
 
-  // Upsert to pre_computed_props (without bookLines — column doesn't exist)
+  // Redis rows use camelCase bookLines for frontend compatibility
+  const redisRows = rowsWithBookLines.map((r: Record<string, any>) => ({
+    ...r,
+    bookLines: r.book_lines,
+  }));
+
+  // Upsert to pre_computed_props (book_lines JSONB column)
   const { error: upsertError } = await supabaseAdmin
     .from('pre_computed_props')
-    .upsert(rows, { onConflict: 'game_date,player_name,stat' });
+    .upsert(rowsWithBookLines, { onConflict: 'game_date,player_name,stat' });
 
   if (upsertError) {
     logger.warn({ err: upsertError.message }, '[OddsRefresh] pre_computed_props upsert failed');
